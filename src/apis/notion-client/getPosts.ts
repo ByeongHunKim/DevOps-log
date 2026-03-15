@@ -10,6 +10,21 @@ import { TPosts } from "src/types"
  * @param {{ includePages: boolean }} - false: posts only / true: include pages
  */
 
+// notion-client response wraps records as { value: { value: Data, role }, spaceId }
+// This helper unwraps to the old { value: Data, role } format
+function unwrapRecordMap(recordMap: Record<string, any>) {
+  const unwrapped: Record<string, any> = {}
+  for (const [key, entry] of Object.entries(recordMap)) {
+    const inner = entry?.value
+    if (inner && typeof inner === "object" && "value" in inner && "role" in inner) {
+      unwrapped[key] = inner
+    } else {
+      unwrapped[key] = entry
+    }
+  }
+  return unwrapped
+}
+
 // TODO: react query를 사용해서 처음 불러온 뒤로는 해당데이터만 사용하도록 수정
 export const getPosts = async () => {
   let id = CONFIG.notionConfig.pageId as string
@@ -17,8 +32,14 @@ export const getPosts = async () => {
 
   const response = await api.getPage(id)
   id = idToUuid(id)
-  const collection = Object.values(response.collection)[0]?.value
-  const block = response.block
+
+  const block = unwrapRecordMap(response.block)
+  const collectionEntry = Object.values(response.collection)[0] as any
+  const collectionInner = collectionEntry?.value
+  const collection =
+    collectionInner && "value" in collectionInner && "role" in collectionInner
+      ? collectionInner.value
+      : collectionInner
   const schema = collection?.schema
 
   const rawMetadata = block[id].value

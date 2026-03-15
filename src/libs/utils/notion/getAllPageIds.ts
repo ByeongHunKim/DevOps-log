@@ -16,9 +16,12 @@ export default function getAllPageIds(
     const pageSet = new Set<ID>()
     // * type not exist
     Object.values(views).forEach((view: any) => {
+      // Handle both old and new response format
       view?.collection_group_results?.blockIds?.forEach((id: ID) =>
         pageSet.add(id)
       )
+      // New format may have blockIds directly or under reducerResults
+      view?.blockIds?.forEach((id: ID) => pageSet.add(id))
     })
     pageIds = [...pageSet]
   }
